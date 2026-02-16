@@ -26,9 +26,10 @@ def evaluate():
     Evalúa el modelo entrenado sobre el conjunto de validación.
     Genera classification_report completo y matriz de confusión.
     """
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.environ.get(
         'DATA_DIR',
-        os.path.join(os.getcwd(), 'data', 'dataset-resized')
+        os.path.join(script_dir, 'data', 'dataset-resized')
     )
     models_dir = os.environ.get('MODELS_DIR', 'models')
     model_path = os.path.join(models_dir, 'model.h5')

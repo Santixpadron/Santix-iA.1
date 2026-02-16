@@ -11,13 +11,13 @@ import json
 import os
 
 
-def load_and_preprocess_image_bytes(image_bytes, img_size=(64, 64)):
+def load_and_preprocess_image_bytes(image_bytes, img_size=(128, 128)):
     """
     Preprocesa una imagen desde bytes para inferencia.
 
     Args:
         image_bytes: Bytes de la imagen (jpg/png).
-        img_size: Tupla (alto, ancho). Default 64x64 para consistencia con entrenamiento.
+        img_size: Tupla (alto, ancho). Default 128x128 para consistencia con entrenamiento.
 
     Returns:
         Array numpy con shape (1, 64, 64, 3) normalizado a [0, 1].

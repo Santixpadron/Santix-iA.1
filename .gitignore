@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.vscode/
+logs/
+detector_residuos/.gitignore
+
+# Modelos y datos grandes
+models/
+*.h5
+*.keras
+detector_residuos/data/
