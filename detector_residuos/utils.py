@@ -28,7 +28,7 @@ def load_and_preprocess_image_bytes(image_bytes, img_size=(128, 128)):
     return np.expand_dims(arr.astype('float32'), axis=0)
 
 
-def load_class_names(models_dir='models'):
+def load_class_names(models_dir='../models'):
     """Carga los nombres de clase desde el JSON generado en entrenamiento."""
     path = os.path.join(models_dir, 'class_names.json')
     if os.path.exists(path):
@@ -37,7 +37,7 @@ def load_class_names(models_dir='models'):
     return None
 
 
-def load_model(models_dir='models'):
+def load_model(models_dir='../models'):
     """Carga el modelo entrenado desde disco."""
     model_path = os.path.join(models_dir, 'model.h5')
     if not os.path.exists(model_path):

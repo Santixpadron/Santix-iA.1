@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eco-Detector AI — Clasificador de Residuos</title>
+    <meta name="description" content="Sistema de clasificación automática de residuos mediante IA. Sube una foto y el modelo CNN clasificará el tipo de residuo.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-glow {
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(0, 204, 102, 0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 30%, rgba(0, 153, 255, 0.04) 0%, transparent 50%),
+                        radial-gradient(circle at 50% 80%, rgba(147, 51, 234, 0.03) 0%, transparent 50%);
+            animation: bgFloat 20s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(30px, -30px) rotate(1deg); }
+            66% { transform: translate(-20px, 20px) rotate(-1deg); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header .logo {
+            font-size: 56px;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 20px rgba(0, 204, 102, 0.4));
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00cc66, #00aaff, #9333ea);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 5s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            color: #888;
+            font-size: 1.05rem;
+            margin-top: 8px;
+            font-weight: 300;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 2px dashed rgba(0, 204, 102, 0.25);
+            border-radius: 24px;
+            padding: 60px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 204, 102, 0.05), rgba(0, 170, 255, 0.03));
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: rgba(0, 204, 102, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 60px rgba(0, 204, 102, 0.1);
+        }
+
+        .upload-zone:hover::before, .upload-zone.dragover::before {
+            opacity: 1;
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            display: block;
+            transition: transform 0.3s;
+        }
+
+        .upload-zone:hover .upload-icon {
+            transform: scale(1.1) translateY(-4px);
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #aaa;
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-text strong {
+            color: #00cc66;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Preview */
+        .preview-section {
+            display: none;
+            margin-top: 32px;
+            animation: fadeSlideUp 0.6s ease;
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .preview-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .preview-card img {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .preview-actions {
+            padding: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            border-radius: 14px;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00cc66, #00aa55);
+            color: white;
+            box-shadow: 0 4px 20px rgba(0, 204, 102, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 204, 102, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: #aaa;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00cc66;
+            margin: 0 6px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .spinner-dot:nth-child(1) { animation-delay: -0.32s; }
+        .spinner-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .spinner p {
+            color: #888;
+            margin-top: 16px;
+            font-size: 0.95rem;
+        }
+
+        /* Results */
+        .results-section {
+            display: none;
+            margin-top: 32px;
+            animation: fadeSlideUp 0.6s ease;
+        }
+
+        .result-main {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 20px;
+        }
+
+        .result-icon {
+            font-size: 72px;
+            margin-bottom: 12px;
+            display: block;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .result-label {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .result-confidence {
+            font-size: 1.1rem;
+            color: #888;
+        }
+
+        .result-confidence span {
+            font-weight: 700;
+        }
+
+        /* Probability Bars */
+        .prob-list {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .prob-list h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #666;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .prob-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            opacity: 0;
+            animation: fadeSlideUp 0.4s ease forwards;
+        }
+
+        .prob-item:nth-child(2) { animation-delay: 0.05s; }
+        .prob-item:nth-child(3) { animation-delay: 0.1s; }
+        .prob-item:nth-child(4) { animation-delay: 0.15s; }
+        .prob-item:nth-child(5) { animation-delay: 0.2s; }
+        .prob-item:nth-child(6) { animation-delay: 0.25s; }
+        .prob-item:nth-child(7) { animation-delay: 0.3s; }
+
+        .prob-icon {
+            font-size: 24px;
+            width: 36px;
+            text-align: center;
+        }
+
+        .prob-info {
+            flex: 1;
+        }
+
+        .prob-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .prob-bar-bg {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .prob-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 0;
+        }
+
+        .prob-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 24px;
+            color: #444;
+            font-size: 0.8rem;
+        }
+
+        .footer a {
+            color: #00cc66;
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .header h1 { font-size: 2rem; }
+            .upload-zone { padding: 40px 24px; }
+            .upload-icon { font-size: 48px; }
+            .result-main { padding: 24px; }
+            .result-icon { font-size: 56px; }
+            .result-label { font-size: 1.5rem; }
+            .preview-actions { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <span class="logo">♻️</span>
+            <h1>Eco-Detector AI</h1>
+            <p>Clasifica residuos con inteligencia artificial en segundos</p>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="uploadZone">
+            <span class="upload-icon">📸</span>
+            <p class="upload-text"><strong>Arrastra una imagen</strong> o haz clic para seleccionar</p>
+            <p class="upload-hint">JPG, JPEG o PNG • Máximo 10MB</p>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg">
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-section" id="previewSection">
+            <div class="preview-card">
+                <img id="previewImage" src="" alt="Vista previa">
+                <div class="preview-actions">
+                    <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeImage()">
+                        🤖 Analizar Imagen
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetAll()">
+                        ✕ Cambiar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spinner -->
+        <div class="spinner" id="spinner">
+            <div>
+                <span class="spinner-dot"></span>
+                <span class="spinner-dot"></span>
+                <span class="spinner-dot"></span>
+            </div>
+            <p>Analizando residuo con IA...</p>
+        </div>
+
+        <!-- Results -->
+        <div class="results-section" id="resultsSection">
+            <div class="result-main" id="resultMain">
+                <span class="result-icon" id="resultIcon"></span>
+                <div class="result-label" id="resultLabel"></div>
+                <div class="result-confidence">Confianza: <span id="resultConf"></span></div>
+            </div>
+            <div class="prob-list">
+                <h3>📊 Distribución de Probabilidades</h3>
+                <div id="probContainer"></div>
+            </div>
+            <div style="margin-top: 16px;">
+                <button class="btn btn-secondary" onclick="resetAll()" style="width: 100%;">
+                    🔄 Clasificar otro residuo
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Modelo CNN entrenado con TrashNet • 6 categorías de residuos</p>
+            <p style="margin-top: 4px;">Eco-Detector AI — Santix-iA</p>
+        </div>
+    </div>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const previewImage = document.getElementById('previewImage');
+        const spinner = document.getElementById('spinner');
+        const resultsSection = document.getElementById('resultsSection');
+        let selectedFile = null;
+
+        // Click to upload
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        // File selected
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        // Drag & Drop
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Por favor selecciona una imagen válida (JPG o PNG).');
+                return;
+            }
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                uploadZone.style.display = 'none';
+                previewSection.style.display = 'block';
+                resultsSection.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function analyzeImage() {
+            if (!selectedFile) return;
+
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Procesando...';
+            spinner.style.display = 'block';
+            resultsSection.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+
+            try {
+                const response = await fetch('/predict', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                displayResults(data);
+            } catch (error) {
+                alert('Error de conexión con el servidor.');
+                console.error(error);
+            } finally {
+                spinner.style.display = 'none';
+                btn.disabled = false;
+                btn.innerHTML = '🤖 Analizar Imagen';
+            }
+        }
+
+        function displayResults(data) {
+            const { prediction, probabilities } = data;
+
+            document.getElementById('resultIcon').textContent = prediction.icon;
+            document.getElementById('resultLabel').textContent = prediction.label;
+            document.getElementById('resultLabel').style.color = prediction.color;
+            document.getElementById('resultConf').textContent = prediction.confidence + '%';
+            document.getElementById('resultConf').style.color = prediction.color;
+
+            // Main card border glow
+            document.getElementById('resultMain').style.borderColor = prediction.color + '40';
+            document.getElementById('resultMain').style.boxShadow = `0 0 40px ${prediction.color}15`;
+
+            // Probability bars
+            const container = document.getElementById('probContainer');
+            container.innerHTML = '';
+
+            probabilities.forEach((item) => {
+                const div = document.createElement('div');
+                div.className = 'prob-item';
+                div.innerHTML = `
+                    <span class="prob-icon">${item.icon}</span>
+                    <div class="prob-info">
+                        <div class="prob-name">${item.label}</div>
+                        <div class="prob-bar-bg">
+                            <div class="prob-bar" style="background: ${item.color};" data-width="${item.probability}%"></div>
+                        </div>
+                    </div>
+                    <span class="prob-value" style="color: ${item.color};">${item.probability}%</span>
+                `;
+                container.appendChild(div);
+            });
+
+            resultsSection.style.display = 'block';
+
+            // Animate bars
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    document.querySelectorAll('.prob-bar').forEach(bar => {
+                        bar.style.width = bar.dataset.width;
+                    });
+                }, 100);
+            });
+        }
+
+        function resetAll() {
+            selectedFile = null;
+            fileInput.value = '';
+            previewSection.style.display = 'none';
+            resultsSection.style.display = 'none';
+            spinner.style.display = 'none';
+            uploadZone.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

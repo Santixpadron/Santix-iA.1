@@ -7,3 +7,5 @@ seaborn
 numpy
 pandas
 Pillow
+flask
+pyinstaller
