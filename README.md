@@ -134,6 +134,6 @@ El modelo utiliza una **Red Neuronal Convolucional (CNN)** secuencial diseñada 
 
 <div align="center">
 
-Creado con 💚 por [Tu Nombre/Usuario] para el cuidado del medio ambiente.
+Creado con 💚 por Santixpadron para el cuidado del medio ambiente.
 
 </div>
